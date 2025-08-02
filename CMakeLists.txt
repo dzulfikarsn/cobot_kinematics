@@ -7,13 +7,15 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(geometry_msgs)
+find_package(geometry_msgs REQUIRED)
 find_package(kdl_parser REQUIRED)
 find_package(orocos_kdl REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(sensor_msgs)
-find_package(tf2)
-find_package(tf2_ros)
+find_package(sensor_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(trajectory_msgs REQUIRED)
 
 # ========== FK NODE ==========
 # Executable node
@@ -55,6 +57,8 @@ ament_target_dependencies(ik_node
   rclcpp
   tf2
   tf2_ros
+  std_srvs
+  trajectory_msgs
 )
 # =============================
 

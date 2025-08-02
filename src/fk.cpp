@@ -13,7 +13,7 @@ CobotFK::CobotFK()
   }
 
   // Get the tree chain
-  if (!tree.getChain("base_link", "link5", chain)) {
+  if (!tree.getChain("base_link", "link4", chain)) {
     RCLCPP_ERROR(this->get_logger(), "Failed to get KDL chain!");
     return;
   }

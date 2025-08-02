@@ -23,7 +23,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr jointSub_;
 
 private:
-  std::string urdfPath{"/home/jull/ros2_ws/src/cobot_description/urdf/cobot.urdf"};
+  std::string urdfPath{"/home/jull/cobot_ws/src/cobot_description/urdf/cobot_kinematics.urdf"};
   KDL::Chain chain;
   std::unique_ptr<KDL::ChainFkSolverPos_recursive> fkSolver;
 };

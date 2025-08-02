@@ -2,18 +2,24 @@
 
 #include <array>
 
+#include "rclcpp/rclcpp.hpp"
+#include "tf2/time.hpp"
+#include "tf2/exceptions.hpp"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
+
+// interface packages
 #include "geometry_msgs/msg/transform_stamped.hpp"
+#include "std_srvs/srv/trigger.hpp"
+#include "trajectory_msgs/msg/joint_trajectory.hpp"
+#include "trajectory_msgs/msg/joint_trajectory_point.hpp"
+
 #include "kdl/chain.hpp"
 #include "kdl/chainiksolverpos_lma.hpp"
 #include "kdl/frames.hpp"
 #include "kdl/jntarray.hpp"
 #include "kdl/tree.hpp"
 #include "kdl_parser/kdl_parser.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "tf2/time.hpp"
-#include "tf2/exceptions.hpp"
-#include "tf2_ros/buffer.h"
-#include "tf2_ros/transform_listener.h"
 
 using namespace std::chrono_literals;
 
@@ -30,7 +36,7 @@ CobotIK::CobotIK()
   }
 
   // Get the tree chain
-  if (!tree.getChain("base_link", "link5", chain)) {
+  if (!tree.getChain("base_link", "link4", chain)) {
     RCLCPP_FATAL(this->get_logger(), "Failed to get KDL chain!");
     return;
   }
@@ -41,26 +47,31 @@ CobotIK::CobotIK()
   }
 
   ikSolver = std::make_unique<KDL::ChainIkSolverPos_LMA>(chain);
+
   lastSolution = KDL::JntArray(chain.getNrOfJoints());
 
-  timer_ = this->create_wall_timer(
+  callbackTimer_ = this->create_wall_timer(
     100ms, std::bind(&CobotIK::callback, this));
+
+  pubAngleService_ = this->create_service<std_srvs::srv::Trigger>(
+    "pub_angle", std::bind(&CobotIK::publishAngleService, this, std::placeholders::_1, std::placeholders::_2));
+  anglePub_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>("joint_trajectory_controller/joint_trajectory", 1);
 }
 
 void CobotIK::callback() {
   geometry_msgs::msg::TransformStamped tf;
   try {
-    tf = tfBuffer_.lookupTransform("base_link", "link5", tf2::TimePointZero);
+    tf = tfBuffer_.lookupTransform("base_link", "link4", tf2::TimePointZero);
 
     pos = { tf.transform.translation.x,
             tf.transform.translation.y,
             tf.transform.translation.z };
-    
+
     orien = { tf.transform.rotation.x,
               tf.transform.rotation.y,
               tf.transform.rotation.z,
               tf.transform.rotation.w };
-    
+
   } catch (tf2::TransformException& ex) {
     RCLCPP_WARN(this->get_logger(), "Could not transform: %s", ex.what());
     return;
@@ -70,22 +81,48 @@ void CobotIK::callback() {
 }
 
 void CobotIK::solveIK() {
-  KDL::Frame targetPose;
+  KDL::Frame targetPose;  // pose of the target (position and orientation)
   targetPose.p = KDL::Vector(pos.at(0), pos.at(1), pos.at(2));
   targetPose.M = KDL::Rotation::Quaternion(orien.at(0), orien.at(1), orien.at(2), orien.at(3));
 
-  KDL::JntArray q_init = lastSolution;
-  KDL::JntArray q_result(chain.getNrOfJoints());
+  solution = KDL::JntArray(chain.getNrOfJoints());
 
-  int result = ikSolver->CartToJnt(q_init, targetPose, q_result);
+  int result = ikSolver->CartToJnt(lastSolution, targetPose, solution);
 
   if (result >= 0) {
     RCLCPP_INFO(this->get_logger(), "IK solution found:");
-    for (size_t i = 0; i < q_result.rows(); ++i) {
-      RCLCPP_INFO(this->get_logger(), " joint[%ld] = %.5f", i, q_result(i));
+    for (size_t i=0; i<solution.rows(); i++) {
+      RCLCPP_INFO(this->get_logger(), " joint[%ld] = %.5f", i, solution(i));
     }
-    lastSolution = q_result;
+    lastSolution = solution;
   } else {
     RCLCPP_ERROR(this->get_logger(), "IK failed (code = %d)", result);
   }
+}
+
+void CobotIK::publishAngleService(std_srvs::srv::Trigger::Request::ConstSharedPtr req,
+    std_srvs::srv::Trigger::Response::SharedPtr res)
+{
+  // publisher session
+
+  trajectory_msgs::msg::JointTrajectoryPoint point;
+  for (size_t i=0; i<solution.rows(); i++) {
+    point.positions.push_back(solution(i));
+  }
+  point.time_from_start.sec = 1;  // second
+
+  trajectory_msgs::msg::JointTrajectory msg;
+
+  msg.header.stamp = this->get_clock()->now();
+  
+  msg.joint_names = {"joint_0", "joint_1", "joint_2"};
+
+  msg.points.push_back(point);
+
+  anglePub_->publish(msg);
+
+  // service session
+
+  res->success = true;
+  res->message = "Joint angle command published.";
 }
