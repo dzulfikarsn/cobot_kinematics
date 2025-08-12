@@ -36,7 +36,7 @@ CobotIK::CobotIK()
   }
 
   // Get the tree chain
-  if (!tree.getChain("base_link", "link4", chain)) {
+  if (!tree.getChain("base_link", "end_effector", chain)) {
     RCLCPP_FATAL(this->get_logger(), "Failed to get KDL chain!");
     return;
   }
@@ -61,7 +61,7 @@ CobotIK::CobotIK()
 void CobotIK::callback() {
   geometry_msgs::msg::TransformStamped tf;
   try {
-    tf = tfBuffer_.lookupTransform("base_link", "link4", tf2::TimePointZero);
+    tf = tfBuffer_.lookupTransform("base_link", "end_effector", tf2::TimePointZero);
 
     pos = { tf.transform.translation.x,
             tf.transform.translation.y,
@@ -101,7 +101,7 @@ void CobotIK::solveIK() {
 }
 
 void CobotIK::publishAngleService(std_srvs::srv::Trigger::Request::ConstSharedPtr req,
-    std_srvs::srv::Trigger::Response::SharedPtr res)
+    std_srvs::srv::Trigger::Response::SharedPtr res)  // req = request, res = response
 {
   // publisher session
 
@@ -115,7 +115,7 @@ void CobotIK::publishAngleService(std_srvs::srv::Trigger::Request::ConstSharedPt
 
   msg.header.stamp = this->get_clock()->now();
   
-  msg.joint_names = {"joint_0", "joint_1", "joint_2"};
+  msg.joint_names = {"joint_0", "joint_1", "joint_2", "joint_3", "joint_4"};
 
   msg.points.push_back(point);
 

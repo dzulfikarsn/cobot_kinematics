@@ -36,7 +36,7 @@ private:
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pubAngleService_;
   rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr anglePub_;
   
-  std::string urdfPath{"/home/jull/cobot_ws/src/cobot_description/urdf/cobot_kinematics.urdf"};
+  std::string urdfPath{"/home/jull/cobot_ws/src/cobot_description/urdf/cobot.urdf"};
   KDL::Chain chain;
   std::unique_ptr<KDL::ChainIkSolverPos_LMA> ikSolver;
   KDL::JntArray lastSolution;  // last joint position
