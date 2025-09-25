@@ -77,13 +77,21 @@ void CobotIK::callback() {
     return;
   }
 
+  RCLCPP_INFO(
+    this->get_logger(),
+    "Pos x: %f y: %f z: %f\nOrien x: %f y: %f z: %f w: %f",
+    pos[0], pos[1], pos[2], orien[0], orien[1], orien[2], orien[3]);
+
   solveIK();
 }
 
 void CobotIK::solveIK() {
-  KDL::Frame targetPose;  // pose of the target (position and orientation)
-  targetPose.p = KDL::Vector(pos.at(0), pos.at(1), pos.at(2));
-  targetPose.M = KDL::Rotation::Quaternion(orien.at(0), orien.at(1), orien.at(2), orien.at(3));
+  KDL::Frame targetPose(
+    KDL::Rotation::Quaternion(0.5, 0.5, -0.5, 0.5),
+    KDL::Vector(0.218, 0.004, 0.1));
+  // KDL::Frame targetPose;  // pose of the target (position and orientation)
+  // targetPose.p = KDL::Vector(pos.at(0), pos.at(1), pos.at(2));
+  // targetPose.M = KDL::Rotation::Quaternion(orien.at(0), orien.at(1), orien.at(2), orien.at(3));
 
   solution = KDL::JntArray(chain.getNrOfJoints());
 
@@ -103,21 +111,27 @@ void CobotIK::solveIK() {
 void CobotIK::publishAngleService(std_srvs::srv::Trigger::Request::ConstSharedPtr req,
     std_srvs::srv::Trigger::Response::SharedPtr res)  // req = request, res = response
 {
-  // publisher session
+  // publisher sessionpoint.positions.push_back(solution(i));
 
   trajectory_msgs::msg::JointTrajectoryPoint point;
   for (size_t i=0; i<solution.rows(); i++) {
-    point.positions.push_back(solution(i));
+    if (i==1) {
+      point.positions.push_back(solution(i) + 0.1667);  // TODO: INI OFFSET TOLONG BUATKAN YAML UNTUK OFFSET BIAR LURUS KE ATAS SEMUA
+    } else {
+      point.positions.push_back(solution(i));
+    }
   }
+  point.positions.push_back(-1.0);  // for gripper
   point.time_from_start.sec = 1;  // second
 
   trajectory_msgs::msg::JointTrajectory msg;
 
   msg.header.stamp = this->get_clock()->now();
   
-  msg.joint_names = {"joint_0", "joint_1", "joint_2", "joint_3", "joint_4"};
+  msg.joint_names = {"joint_0", "joint_1", "joint_2", "joint_3", "joint_4", "gripper"};
 
   msg.points.push_back(point);
+
 
   anglePub_->publish(msg);
 
