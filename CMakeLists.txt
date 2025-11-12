@@ -62,14 +62,14 @@ ament_target_dependencies(ik_node
 )
 # =============================
 
-# add_executable(show src/budi_luhur.cpp)
-# ament_target_dependencies(show rclcpp trajectory_msgs std_srvs)
+add_executable(show src/budi_luhur.cpp)
+ament_target_dependencies(show rclcpp trajectory_msgs std_srvs)
 
 # Install target
 install(TARGETS
   fk_node
   ik_node
-  # show
+  show
   DESTINATION lib/${PROJECT_NAME}
 )
 

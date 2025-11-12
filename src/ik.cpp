@@ -86,12 +86,12 @@ void CobotIK::callback() {
 }
 
 void CobotIK::solveIK() {
-  KDL::Frame targetPose(
-    KDL::Rotation::Quaternion(0.5, 0.5, -0.5, 0.5),
-    KDL::Vector(0.218, 0.004, 0.1));
-  // KDL::Frame targetPose;  // pose of the target (position and orientation)
-  // targetPose.p = KDL::Vector(pos.at(0), pos.at(1), pos.at(2));
-  // targetPose.M = KDL::Rotation::Quaternion(orien.at(0), orien.at(1), orien.at(2), orien.at(3));
+  // KDL::Frame targetPose(
+  //   KDL::Rotation::Quaternion(0.5, 0.5, -0.5, 0.5),
+  //   KDL::Vector(0.218, 0.004, 0.015));
+  KDL::Frame targetPose;  // pose of the target (position and orientation)
+  targetPose.p = KDL::Vector(pos.at(0), pos.at(1), pos.at(2));
+  targetPose.M = KDL::Rotation::Quaternion(orien.at(0), orien.at(1), orien.at(2), orien.at(3));
 
   solution = KDL::JntArray(chain.getNrOfJoints());
 
